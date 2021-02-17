@@ -1,0 +1,11 @@
+all: suivi_mouvement
+
+suivi_mouvement: suivi_mouvement.o
+	g++ suivi_mouvement.o -o suivi_mouvement `pkg-config --libs opencv` 
+
+suivi_mouvement.o: suivi_mouvement.cpp
+	g++ -c suivi_mouvement.cpp `pkg-config --cflags opencv` 
+	@echo 'Finished building target: $@'
+
+clean:
+	rm -rf *o suivi_mouvement
