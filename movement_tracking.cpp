@@ -234,7 +234,7 @@ void initialize_kalman_filter(map<int, KalmanFilter> &liste_filtres_kalman,
 
 	// Declare an image to contain all traces of all moving objects
 	stringstream ss;
-	ss << "images_suivi/" << video_name << ".png";
+	ss << "tracking_images/" << video_name << ".png";
 	string fileName = ss.str();
 	Mat imgSuiviMouvement = imread(fileName, -1);
 
@@ -317,7 +317,7 @@ void initialize_kalman_filter(map<int, KalmanFilter> &liste_filtres_kalman,
 
 			// Save the tracked image for this object
 			stringstream ss;
-			ss << "images_suivi/" << video_name << "_objet_"
+			ss << "tracking_images/" << video_name << "_objet_"
 					<< englobates_boxes_vector[i].indice << ".png";
 			string filename = ss.str();
 
@@ -474,7 +474,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 
 				{
 					stringstream ss;
-					ss << "images_suivi/" << video_name << ".png";
+					ss << "tracking_images/" << video_name << ".png";
 					string fileName = ss.str();
 
 					imageSuivi = imread(fileName, -1); // loading the image to trace the route
@@ -487,7 +487,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 								listKalmanFilter[ListObjetsPrecedents[i].indice].predict();
 
 						stringstream ss;
-						ss << "images_suivi/" << video_name << "_objet_"
+						ss << "tracking_images/" << video_name << "_objet_"
 								<< ListObjetsPrecedents[i].indice << ".png";
 						string fileName = ss.str();
 						Mat imgSuiviObj = imread(fileName, -1);
@@ -618,7 +618,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 
 				// Viewing and Saving Results 
 				stringstream ss1;
-				ss1 << "images_suivi/" << video_name << ".png";
+				ss1 << "tracking_images/" << video_name << ".png";
 				string fileName1 = ss1.str();
 				if (!imwrite(fileName1, imageSuivi))
 					cout << "Error while saving " << fileName1
