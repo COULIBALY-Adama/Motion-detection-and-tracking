@@ -75,7 +75,7 @@ Mat background_extraction(string video_name, int nb_sequences) {
 			videoCapture >> frame;
 
 			if (!frame.data) {
-				cout << "End of video playback" << endl;
+				cout << "Fin de lecture de la video" << endl;
 				exit(0);
 			} else if (countFrame < nb_sequences) {
 
@@ -230,45 +230,45 @@ void initialize_kalman_filter(map<int, KalmanFilter> &liste_filtres_kalman,
 		}
 	}
 
-	Mat measured = Mat::zeros(4, 1, CV_32FC1);
+	Mat mesure = Mat::zeros(4, 1, CV_32FC1);
 
 	// Declare an image to contain all traces of all moving objects
 	stringstream ss;
-	ss << "tracking_images/" << video_name << ".png";
+	ss << "images_suivi/" << video_name << ".png";
 	string fileName = ss.str();
-	Mat imgMotionTracking = imread(fileName, -1);
+	Mat imgSuiviMouvement = imread(fileName, -1);
 
 	for (int i = 0; i < (int) englobates_boxes_vector.size(); i++) {
 
 		// Initialize the Kalman filter
-		KalmanFilter kalman_filter(4, 4, 0);
+		KalmanFilter filtre_kalman(4, 4, 0);
 
 		// Initialize matrices
-		setIdentity(kalman_filter.transitionMatrix, cvRealScalar(1));
-		kalman_filter.transitionMatrix.at<float>(0, 2) = 1;
-		kalman_filter.transitionMatrix.at<float>(1, 3) = 1;
-		setIdentity(kalman_filter.processNoiseCov, cvRealScalar(0));
-		setIdentity(kalman_filter.measurementNoiseCov, cvRealScalar(0));
-		setIdentity(kalman_filter.measurementMatrix, cvRealScalar(1));
-		setIdentity(kalman_filter.errorCovPost, cvRealScalar(1));
+		setIdentity(filtre_kalman.transitionMatrix, cvRealScalar(1));
+		filtre_kalman.transitionMatrix.at<float>(0, 2) = 1;
+		filtre_kalman.transitionMatrix.at<float>(1, 3) = 1;
+		setIdentity(filtre_kalman.processNoiseCov, cvRealScalar(0));
+		setIdentity(filtre_kalman.measurementNoiseCov, cvRealScalar(0));
+		setIdentity(filtre_kalman.measurementMatrix, cvRealScalar(1));
+		setIdentity(filtre_kalman.errorCovPost, cvRealScalar(1));
 
 		// Make the prediction without relying on historical data
-		Mat predictionMat = kalman_filter.predict();
+		Mat predictionMat = filtre_kalman.predict();
 
 		// Measured
-		measured.at<float>(0, 0) = (englobates_boxes_vector[i].x2
+		mesure.at<float>(0, 0) = (englobates_boxes_vector[i].x2
 				+ englobates_boxes_vector[i].x1) / 2;
-		measured.at<float>(1, 0) = (englobates_boxes_vector[i].y2
+		mesure.at<float>(1, 0) = (englobates_boxes_vector[i].y2
 				+ englobates_boxes_vector[i].y1) / 2;
 		// La vitesse vx, vy
-		measured.at<float>(2, 0) = 0;
-		measured.at<float>(3, 0) = 0;
+		mesure.at<float>(2, 0) = 0;
+		mesure.at<float>(3, 0) = 0;
 
 		// Correction of measurement
-		Mat correctionMat = kalman_filter.correct(measured);
+		Mat correctionMat = filtre_kalman.correct(mesure);
 
 		// For each object, initialize a tracked imag
-		Mat imgTracking = Mat::zeros(height, width, CV_8UC3);
+		Mat imgSuivi = Mat::zeros(height, width, CV_8UC3);
 
 		if (englobates_boxes_vector[i].indice == -1) {
 			// Reset object index
@@ -276,29 +276,29 @@ void initialize_kalman_filter(map<int, KalmanFilter> &liste_filtres_kalman,
 			englobates_boxes_vector[i].indice = maxIndex;
 
 			// Draw the prediction path
-			draw_cross(imgTracking,
+			draw_cross(imgSuivi,
 					Point(predictionMat.at<float>(0, 0),
 							predictionMat.at<float>(1, 0)), 3,
 					CV_RGB(0, 0, 255));
-			draw_cross(imgMotionTracking,
+			draw_cross(imgSuiviMouvement,
 					Point(predictionMat.at<float>(0, 0),
 							predictionMat.at<float>(1, 0)), 3,
 					CV_RGB(0, 0, 255));
 
 			// Draw the measurement path
-			draw_circle(imgTracking,
-					Point(measured.at<float>(0, 0), measured.at<float>(1, 0)), 3,
+			draw_circle(imgSuivi,
+					Point(mesure.at<float>(0, 0), mesure.at<float>(1, 0)), 3,
 					CV_RGB(0, 255, 0));
-			draw_circle(imgMotionTracking,
-					Point(measured.at<float>(0, 0), measured.at<float>(1, 0)), 3,
+			draw_circle(imgSuiviMouvement,
+					Point(mesure.at<float>(0, 0), mesure.at<float>(1, 0)), 3,
 					CV_RGB(0, 255, 0));
 
 			// Draw the correction path
-			draw_square(imgTracking,
+			draw_square(imgSuivi,
 					Point(correctionMat.at<float>(0, 0),
 							correctionMat.at<float>(1, 0)), 3,
 					CV_RGB(255, 0, 0));
-			draw_square(imgMotionTracking,
+			draw_square(imgSuiviMouvement,
 					Point(correctionMat.at<float>(0, 0),
 							correctionMat.at<float>(1, 0)), 3,
 					CV_RGB(255, 0, 0));
@@ -311,25 +311,25 @@ void initialize_kalman_filter(map<int, KalmanFilter> &liste_filtres_kalman,
 			double fontScale = 0.5;
 			int thickness = 1;
 
-			Point textPosition(measured.at<float>(0, 0), measured.at<float>(1, 0));
-			putText(imgTracking, text, textPosition, fontFace, fontScale,
+			Point textPosition(mesure.at<float>(0, 0), mesure.at<float>(1, 0));
+			putText(imgSuivi, text, textPosition, fontFace, fontScale,
 					CV_RGB(255, 255, 255), thickness, 8);
 
 			// Save the tracked image for this object
 			stringstream ss;
-			ss << "tracking_images/" << video_name << "_object_"
+			ss << "images_suivi/" << video_name << "_objet_"
 					<< englobates_boxes_vector[i].indice << ".png";
 			string filename = ss.str();
 
-			imwrite(filename, imgTracking);
+			imwrite(filename, imgSuivi);
 
 			// Add the current kalman filter to the filter list
 			liste_filtres_kalman[englobates_boxes_vector[i].indice] =
-					kalman_filter;
+					filtre_kalman;
 		}
 
 	}
-	imwrite(fileName, imgMotionTracking);
+	imwrite(fileName, imgSuiviMouvement);
 }
 
 // Function to compare the objects of a previous frame and the current frame 
@@ -366,13 +366,13 @@ int chercherIndiceObjet(Enclosing_Box objet_precedent,
 	return indice;
 }
 
-void motion_detection_tracking(string video_name, Mat background_image,
+void detection_suivi_mouvement(string video_name, Mat background_image,
 		int seuil_detection1, int seuil_correspondance) {
 
 	vector<Mat> images_video;
 	vector<Mat> images_mouvement;
 	stringstream video_path;
-	Mat ImageTracking;
+	Mat imageSuivi;
 	//imageMouv  = Mat::zeros(frame.size(), CV_8UC1);
 
 	video_path << "videos/" << video_name;
@@ -396,8 +396,8 @@ void motion_detection_tracking(string video_name, Mat background_image,
 	listKalmanFilter.clear();
 
 	namedWindow(video_name, CV_WINDOW_AUTOSIZE);
-	namedWindow("Background Image", CV_WINDOW_AUTOSIZE);
-	namedWindow("Motion detection", CV_WINDOW_AUTOSIZE);
+	namedWindow("Image Arriere Plan", CV_WINDOW_AUTOSIZE);
+	namedWindow("Detection Mouvement", CV_WINDOW_AUTOSIZE);
 
 	GaussianBlur(background_image, background_image, Size(5, 5), 0, 0);
 	// Loading video
@@ -416,7 +416,7 @@ void motion_detection_tracking(string video_name, Mat background_image,
 			videoCapture >> frame;
 
 			if (!frame.data) {
-				cout << "End of video playback" << endl;
+				cout << "Fin de lecture de la video" << endl;
 				break;
 			} else {
 
@@ -448,7 +448,7 @@ void motion_detection_tracking(string video_name, Mat background_image,
 				if (images_mouvement.back().data) {
 					// Recording the motion image
 					stringstream path;
-					path << "images_mouvement/" << video_name << "threshold_"
+					path << "images_mouvement/" << video_name << "seuil_"
 							<< seuil_detection1 << "_frame_"
 							<< images_video.size() - 1 << ".png";
 					string fileName = path.str();
@@ -461,7 +461,7 @@ void motion_detection_tracking(string video_name, Mat background_image,
 				// Draw boxes on the corresponding image
 				draw_bounding_box(frame, ListObjetsActuel);
 
-				ImageTracking = Mat::zeros(frame.size(), CV_8UC3);
+				imageSuivi = Mat::zeros(frame.size(), CV_8UC3);
 
 				//*****************************************  Motion tracking   *************************************/
 				if (numFrameActuel == 0 && (ListObjetsActuel.size() > 0)) {
@@ -474,10 +474,10 @@ void motion_detection_tracking(string video_name, Mat background_image,
 
 				{
 					stringstream ss;
-					ss << "tracking_images/" << video_name << ".png";
+					ss << "images_suivi/" << video_name << ".png";
 					string fileName = ss.str();
 
-					ImageTracking = imread(fileName, -1); // loading the image to trace the route
+					imageSuivi = imread(fileName, -1); // loading the image to trace the route
 					ListObjetsTotal.clear();
 
 					for (int i = 0; i < (int) ListObjetsPrecedents.size();
@@ -487,17 +487,17 @@ void motion_detection_tracking(string video_name, Mat background_image,
 								listKalmanFilter[ListObjetsPrecedents[i].indice].predict();
 
 						stringstream ss;
-						ss << "tracking_images/" << video_name << "_object_"
+						ss << "images_suivi/" << video_name << "_objet_"
 								<< ListObjetsPrecedents[i].indice << ".png";
 						string fileName = ss.str();
-						Mat imgTrackingObj = imread(fileName, -1);
+						Mat imgSuiviObj = imread(fileName, -1);
 
 						// Draw the prediction path
-						draw_cross(imgTrackingObj,
+						draw_cross(imgSuiviObj,
 								Point(predictionMat.at<float>(0, 0),
 										predictionMat.at<float>(1, 0)), 3,
 								CV_RGB(255, 0, 0));
-						draw_cross(ImageTracking,
+						draw_cross(imageSuivi,
 								Point(predictionMat.at<float>(0, 0),
 										predictionMat.at<float>(1, 0)), 3,
 								CV_RGB(255, 0, 0));
@@ -512,13 +512,13 @@ void motion_detection_tracking(string video_name, Mat background_image,
 									ListObjetsPrecedents[i].indice;
 
 							// Step 2: Measure the positions of the objects
-							Mat measured = Mat::zeros(4, 1, CV_32FC1);
+							Mat mesure = Mat::zeros(4, 1, CV_32FC1);
 
-							measured.at<float>(0, 0) =
+							mesure.at<float>(0, 0) =
 									(ListObjetsActuel[correspondance].x1
 											+ ListObjetsActuel[correspondance].x2)
 											/ 2;
-							measured.at<float>(1, 0) =
+							mesure.at<float>(1, 0) =
 									(ListObjetsActuel[correspondance].y1
 											+ ListObjetsActuel[correspondance].y2)
 											/ 2;
@@ -537,36 +537,36 @@ void motion_detection_tracking(string video_name, Mat background_image,
 									- ((ListObjetsPrecedents[i].y1
 											+ ListObjetsPrecedents[i].y2) / 2);
 
-							measured.at<float>(2, 0) = vx;
-							measured.at<float>(3, 0) = vy;
+							mesure.at<float>(2, 0) = vx;
+							mesure.at<float>(3, 0) = vy;
 
 							// Display and save the results, follow the movement and draw the measurement path
-							draw_circle(ImageTracking,
-									Point(measured.at<float>(0, 0),
-											measured.at<float>(1, 0)), 3,
+							draw_circle(imageSuivi,
+									Point(mesure.at<float>(0, 0),
+											mesure.at<float>(1, 0)), 3,
 									CV_RGB(0, 255, 0));
-							draw_circle(imgTrackingObj,
-									Point(measured.at<float>(0, 0),
-											measured.at<float>(1, 0)), 3,
+							draw_circle(imgSuiviObj,
+									Point(mesure.at<float>(0, 0),
+											mesure.at<float>(1, 0)), 3,
 									CV_RGB(0, 255, 0));
 
 							// Step 3: Correct the positions of the objects
 							Mat correctionMat =
 									listKalmanFilter[ListObjetsPrecedents[i].indice].correct(
-											measured);
+											mesure);
 
 							// Draw the path of the correction
-							draw_square(ImageTracking,
+							draw_square(imageSuivi,
 									Point(correctionMat.at<float>(0, 0),
 											correctionMat.at<float>(1, 0)), 3,
 									CV_RGB(0, 0, 255));
-							draw_square(imgTrackingObj,
+							draw_square(imgSuiviObj,
 									Point(correctionMat.at<float>(0, 0),
 											correctionMat.at<float>(1, 0)), 3,
 									CV_RGB(0, 0, 255));
 
 							// Save the tracked image for this object
-							imwrite(fileName, imgTrackingObj);
+							imwrite(fileName, imgSuiviObj);
 							ListObjetsPrecedents[i] =
 									ListObjetsActuel[correspondance];
 						}
@@ -618,9 +618,9 @@ void motion_detection_tracking(string video_name, Mat background_image,
 
 				// Viewing and Saving Results 
 				stringstream ss1;
-				ss1 << "tracking_images/" << video_name << ".png";
+				ss1 << "images_suivi/" << video_name << ".png";
 				string fileName1 = ss1.str();
-				if (!imwrite(fileName1, ImageTracking))
+				if (!imwrite(fileName1, imageSuivi))
 					cout << "Error while saving " << fileName1
 							<< endl;
 
@@ -634,20 +634,20 @@ void motion_detection_tracking(string video_name, Mat background_image,
 
 				// recording of the video image with bounding boxes
 								stringstream ss3;
-								ss3 << "images_mouvement/" << video_name << "threshold_" << seuil_detection1
+								ss3 << "images_mouvement/" << video_name << "seuil_" << seuil_detection1
 										<< "_frame_" << images_video.size() - 1 << ".png";
 								string fileName3 = ss3.str();
 								if (!imwrite(fileName3, images_mouvement.back()))
 									cout << "Error while saving " << fileName3
 											<< endl;
 
-				imshow("Movement tracking", ImageTracking);
+				imshow("Suivi Mouvement", imageSuivi);
 
 				numFrameActuel++;
 
 				imshow(video_name,frame);
-				imshow("Background Image", background_image);
-				imshow("Motion detection", images_mouvement.back());
+				imshow("Image Arriere Plan", background_image);
+				imshow("Detection Mouvement", images_mouvement.back());
 
 				key = cvWaitKey(40);
 
@@ -674,7 +674,7 @@ int main(int argc, char** argv)
 
 	background_image = background_extraction(video_name, nb_sequences);
 
-	motion_detection_tracking(video_name, background_image, seuil_detection,
+	detection_suivi_mouvement(video_name, background_image, seuil_detection,
 			seuil_correspondance);
 
 	waitKey(0);

@@ -1,7 +1,9 @@
-# Détection et suivi de mouvement
+# Motion Detection and Tracking 
 
 
-## Description: Ce programme permet de détecter les mouvements des objets dans une vidéo
+## Description: 
+	This program can detect the movements of objects in a video.
+
 
 ### Compilation:
 	$ make
