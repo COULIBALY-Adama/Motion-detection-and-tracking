@@ -641,7 +641,7 @@ void motion_detection_tracking(string video_name, Mat background_image,
 									cout << "Error while saving " << fileName3
 											<< endl;
 
-				imshow("Suivi Mouvement", ImageTracking);
+				imshow("Movement tracking", ImageTracking);
 
 				numFrameActuel++;
 
