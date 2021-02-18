@@ -1,11 +1,11 @@
-all: detection_mouvement
+all: movement_tracking
 
-detection_mouvement: detection_mouvement.o
-	g++ detection_mouvement.o -o detection_mouvement `pkg-config --libs opencv` 
+movement_tracking: movement_tracking.o
+	g++ movement_tracking.o -o movement_tracking `pkg-config --libs opencv` 
 
-detection_mouvement.o: detection_mouvement.cpp
-	g++ -c detection_mouvement.cpp `pkg-config --cflags opencv` 
+movement_tracking.o: movement_tracking.cpp
+	g++ -c movement_tracking.cpp `pkg-config --cflags opencv` 
 	@echo 'Finished building target: $@'
 
 clean:
-	rm -rf *o detection_mouvement
+	rm -rf *o movement_tracking
