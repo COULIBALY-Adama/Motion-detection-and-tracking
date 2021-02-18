@@ -55,7 +55,7 @@ Mat background_extraction(string video_name, int nb_sequences) {
 	VideoCapture videoCapture(fileName);
 
 	if (!videoCapture.isOpened()) {
-		cout << "Impossible de lire la video : " << video_name << endl;
+		cout << "Unable to play vide : " << video_name << endl;
 		exit(0);
 	} else {
 		// Dimensions of vacuum imageso
@@ -97,44 +97,44 @@ Mat background_extraction(string video_name, int nb_sequences) {
 		for (int i = 0; i < background_image.rows; i++) {
 			for (int j = 0; j < background_image.cols; j++) {
 				// Vector containing the values in all the images of a given pixel
-				vector<int> vecteur_pixel;
+				vector<int> pixel_vector;
 
 				// Retrieving pixel values in all images
 				for (int k = 0; k < nb_images; k++) {
 					int val = images_video[k].at<uchar>(i, j);
-					vecteur_pixel.push_back(val);
+					pixel_vector.push_back(val);
 				}
 
 				// Sorting vector values
-				std::sort(vecteur_pixel.begin(), vecteur_pixel.end());
+				std::sort(pixel_vector.begin(), pixel_vector.end());
 
 				// Choice of median value
-				background_image.at<uchar>(i, j) = vecteur_pixel[(nb_images
+				background_image.at<uchar>(i, j) = pixel_vector[(nb_images
 						+ 1) / 2];
 			}
 		}
 		if (background_image.data) {
 			// Background recording
 			stringstream path;
-			path << "arriere_plan/" << video_name << "_" << nb_sequences
+			path << "background/" << video_name << "_" << nb_sequences
 					<< ".png";
 			string fileName = path.str();
 			if (!imwrite(fileName, background_image))
-				cout << "Erreur lors de l'enregistrement de " << fileName
+				cout << "Error while saving " << fileName
 						<< endl;
 		} else {
-			cout << "Echec de l'extraction de l'arriere plan" << endl;
+			cout << "Failed to extract the background" << endl;
 		}
 
 		return background_image;
 	}
 }
 
-Mat amelioration_dection(Mat &image_mouvement) {
+Mat detection_improvement(Mat &image_mouvement) {
 
 	Mat image1 = image_mouvement.clone();
 
-	Mat img_traitee = image_mouvement.clone();
+	Mat img_processed = image_mouvement.clone();
 	vector<vector<Point> > contours;
 
 	// Erosion + dilation
@@ -144,8 +144,8 @@ Mat amelioration_dection(Mat &image_mouvement) {
 	Mat element_dilatation = getStructuringElement(MORPH_RECT, Size(3, 3),
 			Point(1, 1));
 
-	erode(img_traitee, img_traitee, element_erosion);
-	dilate(img_traitee, img_traitee, element_dilatation);
+	erode(img_processed, img_processed, element_erosion);
+	dilate(img_processed, img_processed, element_dilatation);
 
 	return image_mouvement;
 }
@@ -404,7 +404,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 	VideoCapture videoCapture(fileName);
 
 	if (!videoCapture.isOpened()) {
-		cout << "Impossible de lire la video : " << video_name << endl;
+		cout << "Unable to play vide : " << video_name << endl;
 		exit(0);
 	} else {
 		// reading of the images constituting the video
@@ -437,7 +437,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 				// Binary threshold to eliminate noise
 				threshold(images_mouvement.back(), images_mouvement.back(),
 						seuil_detection1, 255.0, CV_THRESH_BINARY);
-				images_mouvement.back() = amelioration_dection(
+				images_mouvement.back() = detection_improvement(
 						images_mouvement.back());
 
 				// determination of bounding boxes for detected objects
@@ -621,7 +621,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 				ss1 << "images_suivi/" << video_name << ".png";
 				string fileName1 = ss1.str();
 				if (!imwrite(fileName1, imageSuivi))
-					cout << "Erreur lors de l'enregistrement de " << fileName1
+					cout << "Error while saving " << fileName1
 							<< endl;
 
 						stringstream ss2;
@@ -629,7 +629,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 						<< ".png";
 				string fileName2 = ss2.str();
 				if (!imwrite(fileName2, frame))
-					cout << "Erreur lors de l'enregistrement de " << fileName2
+					cout << "Error while saving " << fileName2
 							<< endl;
 
 				// recording of the video image with bounding boxes
@@ -638,7 +638,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 										<< "_frame_" << images_video.size() - 1 << ".png";
 								string fileName3 = ss3.str();
 								if (!imwrite(fileName3, images_mouvement.back()))
-									cout << "Erreur lors de l'enregistrement de " << fileName3
+									cout << "Error while saving " << fileName3
 											<< endl;
 
 				imshow("Suivi Mouvement", imageSuivi);
