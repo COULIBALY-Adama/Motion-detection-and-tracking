@@ -135,7 +135,7 @@ Mat detection_improvement(Mat &image_mouvement) {
 	Mat image1 = image_mouvement.clone();
 
 	Mat img_processed = image_mouvement.clone();
-	vector<vector<Point> > contours;
+	vector<vector<Point> > outlines;
 
 	// Erosion + dilation
 
@@ -153,18 +153,18 @@ Mat detection_improvement(Mat &image_mouvement) {
 // Function used to determine the boxes surrounding objects
 vector<Enclosing_Box> determine_bounding_box(const Mat &frame_courant) {
 	// List of objects in the current frame
-	vector<Enclosing_Box> vecteur_boites_englobates;
-	vecteur_boites_englobates.clear();
+	vector<Enclosing_Box> englobates_boxes_vector;
+	englobates_boxes_vector.clear();
 
-	vector<vector<Point> > contours;
+	vector<vector<Point> > outlines;
 
 	Mat frame = frame_courant.clone();
 
 	// Determine the outlines of the different objects in the frame
-	findContours(frame, contours, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	findContours(frame, outlines, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
 
-	for (int i = 0; i < (int) contours.size(); i++) {
-		Mat pointMat(contours[i]);
+	for (int i = 0; i < (int) outlines.size(); i++) {
+		Mat pointMat(outlines[i]);
 
 		// We consider each contour as an object
 		Rect rect = boundingRect(pointMat);
@@ -175,70 +175,70 @@ vector<Enclosing_Box> determine_bounding_box(const Mat &frame_courant) {
 		enclosing_box.x2 = rect.x + rect.width;
 		enclosing_box.y2 = rect.y + rect.height;
 		enclosing_box.indice = -1;
-		vecteur_boites_englobates.push_back(enclosing_box);
+		englobates_boxes_vector.push_back(enclosing_box);
 	}
-	return vecteur_boites_englobates;
+	return englobates_boxes_vector;
 }
 
 // Function to draw a rectangle
 void draw_bounding_box(Mat &frame_courant,
-		vector<Enclosing_Box> vecteur_boites_englobates) {
+		vector<Enclosing_Box> englobates_boxes_vector) {
 	// Use green to draw boxes surrounding objects
-	for (int i = 0; i < (int) vecteur_boites_englobates.size(); i++) {
+	for (int i = 0; i < (int) englobates_boxes_vector.size(); i++) {
 		rectangle(frame_courant,
-				Point(vecteur_boites_englobates[i].x1,
-						vecteur_boites_englobates[i].y1),
-				Point(vecteur_boites_englobates[i].x2,
-						vecteur_boites_englobates[i].y2), CV_RGB(255, 0, 0), 1);
+				Point(englobates_boxes_vector[i].x1,
+						englobates_boxes_vector[i].y1),
+				Point(englobates_boxes_vector[i].x2,
+						englobates_boxes_vector[i].y2), CV_RGB(255, 0, 0), 1);
 	}
 }
 
 // Function to draw circles on the image
-void dessiner_cercle(Mat &image_suivi, Point centre, int d,
+void draw_circle(Mat &image_tracking, Point center, int d,
 		const Scalar& color) {
-	circle(image_suivi, centre, d, color, 1, 0);
+	circle(image_tracking, center, d, color, 1, 0);
 }
 
 // Function to draw squares on the image
-void dessiner_carre(Mat &image_suivi, Point centre, int d,
+void draw_square(Mat &image_tracking, Point center, int d,
 		const Scalar& color) {
-	rectangle(image_suivi, Point(centre.x - d, centre.y - d),
-			Point(centre.x + d, centre.y + d), color, 1, 0);
+	rectangle(image_tracking, Point(center.x - d, center.y - d),
+			Point(center.x + d, center.y + d), color, 1, 0);
 }
 
 // Function to draw crosses on the image
-void dessiner_croix(Mat &image_suivi, Point centre, int d,
+void draw_cross(Mat &image_tracking, Point center, int d,
 		const Scalar& color) {
 	// The shape is x for each point
-	line(image_suivi, Point(centre.x - d, centre.y - d),
-			Point(centre.x + d, centre.y + d), color, 1, 0);
-	line(image_suivi, Point(centre.x + d, centre.y - d),
-			Point(centre.x - d, centre.y + d), color, 1, 0);
+	line(image_tracking, Point(center.x - d, center.y - d),
+			Point(center.x + d, center.y + d), color, 1, 0);
+	line(image_tracking, Point(center.x + d, center.y - d),
+			Point(center.x - d, center.y + d), color, 1, 0);
 }
 
 // Initialize the Kalman Filter
-void initialiser_filtre_kalman(map<int, KalmanFilter> &liste_filtres_kalman,
-		vector<Enclosing_Box> &vecteur_boites_englobates, int width,
+void initialize_kalman_filter(map<int, KalmanFilter> &liste_filtres_kalman,
+		vector<Enclosing_Box> &englobates_boxes_vector, int width,
 		int height, string video_name) {
 	int maxIndex = -1;
 
 	// Determine the maximum index of the object in the list
-	for (int i = 0; i < (int) vecteur_boites_englobates.size(); i++) {
-		if (maxIndex < vecteur_boites_englobates[i].indice
-				&& vecteur_boites_englobates[i].indice != -1) {
-			maxIndex = vecteur_boites_englobates[i].indice;
+	for (int i = 0; i < (int) englobates_boxes_vector.size(); i++) {
+		if (maxIndex < englobates_boxes_vector[i].indice
+				&& englobates_boxes_vector[i].indice != -1) {
+			maxIndex = englobates_boxes_vector[i].indice;
 		}
 	}
 
-	Mat mesure = Mat::zeros(4, 1, CV_32FC1);
+	Mat measured = Mat::zeros(4, 1, CV_32FC1);
 
 	// Declare an image to contain all traces of all moving objects
 	stringstream ss;
-	ss << "images_suivi/" << video_name << ".png";
+	ss << "tracking_images/" << video_name << ".png";
 	string fileName = ss.str();
-	Mat imgSuiviMouvement = imread(fileName, -1);
+	Mat imgMotionTracking = imread(fileName, -1);
 
-	for (int i = 0; i < (int) vecteur_boites_englobates.size(); i++) {
+	for (int i = 0; i < (int) englobates_boxes_vector.size(); i++) {
 
 		// Initialize the Kalman filter
 		KalmanFilter filtre_kalman(4, 4, 0);
@@ -256,80 +256,80 @@ void initialiser_filtre_kalman(map<int, KalmanFilter> &liste_filtres_kalman,
 		Mat predictionMat = filtre_kalman.predict();
 
 		// Measured
-		mesure.at<float>(0, 0) = (vecteur_boites_englobates[i].x2
-				+ vecteur_boites_englobates[i].x1) / 2;
-		mesure.at<float>(1, 0) = (vecteur_boites_englobates[i].y2
-				+ vecteur_boites_englobates[i].y1) / 2;
+		measured.at<float>(0, 0) = (englobates_boxes_vector[i].x2
+				+ englobates_boxes_vector[i].x1) / 2;
+		measured.at<float>(1, 0) = (englobates_boxes_vector[i].y2
+				+ englobates_boxes_vector[i].y1) / 2;
 		// La vitesse vx, vy
-		mesure.at<float>(2, 0) = 0;
-		mesure.at<float>(3, 0) = 0;
+		measured.at<float>(2, 0) = 0;
+		measured.at<float>(3, 0) = 0;
 
 		// Correction of measurement
-		Mat correctionMat = filtre_kalman.correct(mesure);
+		Mat correctionMat = filtre_kalman.correct(measured);
 
 		// For each object, initialize a tracked imag
 		Mat imgSuivi = Mat::zeros(height, width, CV_8UC3);
 
-		if (vecteur_boites_englobates[i].indice == -1) {
+		if (englobates_boxes_vector[i].indice == -1) {
 			// Reset object index
 			maxIndex++;
-			vecteur_boites_englobates[i].indice = maxIndex;
+			englobates_boxes_vector[i].indice = maxIndex;
 
 			// Draw the prediction path
-			dessiner_croix(imgSuivi,
+			draw_cross(imgSuivi,
 					Point(predictionMat.at<float>(0, 0),
 							predictionMat.at<float>(1, 0)), 3,
 					CV_RGB(0, 0, 255));
-			dessiner_croix(imgSuiviMouvement,
+			draw_cross(imgMotionTracking,
 					Point(predictionMat.at<float>(0, 0),
 							predictionMat.at<float>(1, 0)), 3,
 					CV_RGB(0, 0, 255));
 
 			// Draw the measurement path
-			dessiner_cercle(imgSuivi,
-					Point(mesure.at<float>(0, 0), mesure.at<float>(1, 0)), 3,
+			draw_circle(imgSuivi,
+					Point(measured.at<float>(0, 0), measured.at<float>(1, 0)), 3,
 					CV_RGB(0, 255, 0));
-			dessiner_cercle(imgSuiviMouvement,
-					Point(mesure.at<float>(0, 0), mesure.at<float>(1, 0)), 3,
+			draw_circle(imgMotionTracking,
+					Point(measured.at<float>(0, 0), measured.at<float>(1, 0)), 3,
 					CV_RGB(0, 255, 0));
 
 			// Draw the correction path
-			dessiner_carre(imgSuivi,
+			draw_square(imgSuivi,
 					Point(correctionMat.at<float>(0, 0),
 							correctionMat.at<float>(1, 0)), 3,
 					CV_RGB(255, 0, 0));
-			dessiner_carre(imgSuiviMouvement,
+			draw_square(imgMotionTracking,
 					Point(correctionMat.at<float>(0, 0),
 							correctionMat.at<float>(1, 0)), 3,
 					CV_RGB(255, 0, 0));
 
 			// Draw texts in the motion tracking image
 			stringstream ssText;
-			ssText << vecteur_boites_englobates[i].indice;
+			ssText << englobates_boxes_vector[i].indice;
 			string text = ssText.str();
 			int fontFace = CV_FONT_HERSHEY_SIMPLEX;
 			double fontScale = 0.5;
 			int thickness = 1;
 
-			Point textPosition(mesure.at<float>(0, 0), mesure.at<float>(1, 0));
+			Point textPosition(measured.at<float>(0, 0), measured.at<float>(1, 0));
 			putText(imgSuivi, text, textPosition, fontFace, fontScale,
 					CV_RGB(255, 255, 255), thickness, 8);
 
 			// Save the tracked image for this object
 			stringstream ss;
-			ss << "images_suivi/" << video_name << "_objet_"
-					<< vecteur_boites_englobates[i].indice << ".png";
+			ss << "tracking_images/" << video_name << "_object_"
+					<< englobates_boxes_vector[i].indice << ".png";
 			string filename = ss.str();
 
 			imwrite(filename, imgSuivi);
 
 			// Add the current kalman filter to the filter list
-			liste_filtres_kalman[vecteur_boites_englobates[i].indice] =
+			liste_filtres_kalman[englobates_boxes_vector[i].indice] =
 					filtre_kalman;
 		}
 
 	}
-	imwrite(fileName, imgSuiviMouvement);
+	imwrite(fileName, imgMotionTracking);
 }
 
 // Function to compare the objects of a previous frame and the current frame 
@@ -341,19 +341,19 @@ int chercherIndiceObjet(Enclosing_Box objet_precedent,
 
 	float minDist = 1000000000.0;
 	Enclosing_Box objet_considere;
-	int centreX1 = (objet_precedent.x1 + objet_precedent.x2) / 2;
-	int centreY1 = (objet_precedent.y1 + objet_precedent.y2) / 2;
+	int centerX1 = (objet_precedent.x1 + objet_precedent.x2) / 2;
+	int centerY1 = (objet_precedent.y1 + objet_precedent.y2) / 2;
 
 	for (int i = 0; i < (int) vecteur_objets_actuels.size(); i++) {
-		int centreX = (vecteur_objets_actuels[i].x1
+		int centerX = (vecteur_objets_actuels[i].x1
 				+ vecteur_objets_actuels[i].x2) / 2;
-		int centreY = (vecteur_objets_actuels[i].y1
+		int centerY = (vecteur_objets_actuels[i].y1
 				+ vecteur_objets_actuels[i].y2) / 2;
 
 		// check the distance between the objects: previous object and each object in the list
 		float distance = sqrt(
-				(centreX - centreX1) * (centreX - centreX1)
-						+ (centreY - centreY1) * (centreY - centreY1));
+				(centerX - centerX1) * (centerX - centerX1)
+						+ (centerY - centerY1) * (centerY - centerY1));
 		if (distance < minDist && distance < (float) seuil_correspondance) {
 			minDist = distance;
 			indice = i;
@@ -465,7 +465,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 
 				//*****************************************  Motion tracking   *************************************/
 				if (numFrameActuel == 0 && (ListObjetsActuel.size() > 0)) {
-					initialiser_filtre_kalman(listKalmanFilter,
+					initialize_kalman_filter(listKalmanFilter,
 							ListObjetsActuel, frame.cols, frame.rows,
 							video_name);
 					ListObjetsPrecedents = ListObjetsActuel;
@@ -474,7 +474,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 
 				{
 					stringstream ss;
-					ss << "images_suivi/" << video_name << ".png";
+					ss << "tracking_images/" << video_name << ".png";
 					string fileName = ss.str();
 
 					imageSuivi = imread(fileName, -1); // loading the image to trace the route
@@ -487,17 +487,17 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 								listKalmanFilter[ListObjetsPrecedents[i].indice].predict();
 
 						stringstream ss;
-						ss << "images_suivi/" << video_name << "_objet_"
+						ss << "tracking_images/" << video_name << "_object_"
 								<< ListObjetsPrecedents[i].indice << ".png";
 						string fileName = ss.str();
 						Mat imgSuiviObj = imread(fileName, -1);
 
 						// Draw the prediction path
-						dessiner_croix(imgSuiviObj,
+						draw_cross(imgSuiviObj,
 								Point(predictionMat.at<float>(0, 0),
 										predictionMat.at<float>(1, 0)), 3,
 								CV_RGB(255, 0, 0));
-						dessiner_croix(imageSuivi,
+						draw_cross(imageSuivi,
 								Point(predictionMat.at<float>(0, 0),
 										predictionMat.at<float>(1, 0)), 3,
 								CV_RGB(255, 0, 0));
@@ -512,13 +512,13 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 									ListObjetsPrecedents[i].indice;
 
 							// Step 2: Measure the positions of the objects
-							Mat mesure = Mat::zeros(4, 1, CV_32FC1);
+							Mat measured = Mat::zeros(4, 1, CV_32FC1);
 
-							mesure.at<float>(0, 0) =
+							measured.at<float>(0, 0) =
 									(ListObjetsActuel[correspondance].x1
 											+ ListObjetsActuel[correspondance].x2)
 											/ 2;
-							mesure.at<float>(1, 0) =
+							measured.at<float>(1, 0) =
 									(ListObjetsActuel[correspondance].y1
 											+ ListObjetsActuel[correspondance].y2)
 											/ 2;
@@ -537,30 +537,30 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 									- ((ListObjetsPrecedents[i].y1
 											+ ListObjetsPrecedents[i].y2) / 2);
 
-							mesure.at<float>(2, 0) = vx;
-							mesure.at<float>(3, 0) = vy;
+							measured.at<float>(2, 0) = vx;
+							measured.at<float>(3, 0) = vy;
 
 							// Display and save the results, follow the movement and draw the measurement path
-							dessiner_cercle(imageSuivi,
-									Point(mesure.at<float>(0, 0),
-											mesure.at<float>(1, 0)), 3,
+							draw_circle(imageSuivi,
+									Point(measured.at<float>(0, 0),
+											measured.at<float>(1, 0)), 3,
 									CV_RGB(0, 255, 0));
-							dessiner_cercle(imgSuiviObj,
-									Point(mesure.at<float>(0, 0),
-											mesure.at<float>(1, 0)), 3,
+							draw_circle(imgSuiviObj,
+									Point(measured.at<float>(0, 0),
+											measured.at<float>(1, 0)), 3,
 									CV_RGB(0, 255, 0));
 
 							// Step 3: Correct the positions of the objects
 							Mat correctionMat =
 									listKalmanFilter[ListObjetsPrecedents[i].indice].correct(
-											mesure);
+											measured);
 
 							// Draw the path of the correction
-							dessiner_carre(imageSuivi,
+							draw_square(imageSuivi,
 									Point(correctionMat.at<float>(0, 0),
 											correctionMat.at<float>(1, 0)), 3,
 									CV_RGB(0, 0, 255));
-							dessiner_carre(imgSuiviObj,
+							draw_square(imgSuiviObj,
 									Point(correctionMat.at<float>(0, 0),
 											correctionMat.at<float>(1, 0)), 3,
 									CV_RGB(0, 0, 255));
@@ -592,7 +592,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 							ListObjetsTotal.push_back(ListObjetsActuel[i]);
 					}
 
-					initialiser_filtre_kalman(listKalmanFilter, ListObjetsTotal,
+					initialize_kalman_filter(listKalmanFilter, ListObjetsTotal,
 							frame.cols, frame.rows, video_name);
 					ListObjetsPrecedents = ListObjetsTotal;
 				}
@@ -618,7 +618,7 @@ void detection_suivi_mouvement(string video_name, Mat background_image,
 
 				// Viewing and Saving Results 
 				stringstream ss1;
-				ss1 << "images_suivi/" << video_name << ".png";
+				ss1 << "tracking_images/" << video_name << ".png";
 				string fileName1 = ss1.str();
 				if (!imwrite(fileName1, imageSuivi))
 					cout << "Error while saving " << fileName1
