@@ -49,7 +49,7 @@ Mat background_extraction(string video_name, int nb_sequences) {
 	stringstream video_path;
 	video_path << "videos/" << video_name;
 	string fileName = video_path.str();
-	Mat image_arriere_plan;
+	Mat background_image;
 
 	// Loading video
 	VideoCapture videoCapture(fileName);
@@ -63,7 +63,7 @@ Mat background_extraction(string video_name, int nb_sequences) {
 		width = videoCapture.get(CV_CAP_PROP_FRAME_WIDTH);
 
 		// Initializing the background image
-		image_arriere_plan = Mat::zeros(height, width, CV_8UC1);
+		background_image = Mat::zeros(height, width, CV_8UC1);
 
 		// Vector containing the sequence of images for the construction of the background
 		vector<Mat> images_video;
@@ -94,8 +94,8 @@ Mat background_extraction(string video_name, int nb_sequences) {
 		int nb_images = images_video.size();
 
 		// Creating the background
-		for (int i = 0; i < image_arriere_plan.rows; i++) {
-			for (int j = 0; j < image_arriere_plan.cols; j++) {
+		for (int i = 0; i < background_image.rows; i++) {
+			for (int j = 0; j < background_image.cols; j++) {
 				// Vector containing the values in all the images of a given pixel
 				vector<int> vecteur_pixel;
 
@@ -109,24 +109,24 @@ Mat background_extraction(string video_name, int nb_sequences) {
 				std::sort(vecteur_pixel.begin(), vecteur_pixel.end());
 
 				// Choice of median value
-				image_arriere_plan.at<uchar>(i, j) = vecteur_pixel[(nb_images
+				background_image.at<uchar>(i, j) = vecteur_pixel[(nb_images
 						+ 1) / 2];
 			}
 		}
-		if (image_arriere_plan.data) {
+		if (background_image.data) {
 			// Background recording
 			stringstream path;
 			path << "arriere_plan/" << video_name << "_" << nb_sequences
 					<< ".png";
 			string fileName = path.str();
-			if (!imwrite(fileName, image_arriere_plan))
+			if (!imwrite(fileName, background_image))
 				cout << "Erreur lors de l'enregistrement de " << fileName
 						<< endl;
 		} else {
 			cout << "Echec de l'extraction de l'arriere plan" << endl;
 		}
 
-		return image_arriere_plan;
+		return background_image;
 	}
 }
 
@@ -366,7 +366,7 @@ int chercherIndiceObjet(Enclosing_Box objet_precedent,
 	return indice;
 }
 
-void detection_suivi_mouvement(string video_name, Mat image_arriere_plan,
+void detection_suivi_mouvement(string video_name, Mat background_image,
 		int seuil_detection1, int seuil_correspondance) {
 
 	vector<Mat> images_video;
@@ -399,7 +399,7 @@ void detection_suivi_mouvement(string video_name, Mat image_arriere_plan,
 	namedWindow("Image Arriere Plan", CV_WINDOW_AUTOSIZE);
 	namedWindow("Detection Mouvement", CV_WINDOW_AUTOSIZE);
 
-	GaussianBlur(image_arriere_plan, image_arriere_plan, Size(5, 5), 0, 0);
+	GaussianBlur(background_image, background_image, Size(5, 5), 0, 0);
 	// Loading video
 	VideoCapture videoCapture(fileName);
 
@@ -430,7 +430,7 @@ void detection_suivi_mouvement(string video_name, Mat image_arriere_plan,
 						Size(5, 5), 0, 0);
 				Mat difference_images;
 				// Difference between background image and captured image to detect motion
-				absdiff(image_arriere_plan, images_video.back(),
+				absdiff(background_image, images_video.back(),
 						difference_images);
 				images_mouvement.push_back(difference_images);
 				// GaussianBlur( images_mouvement.back(), images_mouvement.back(),Size( 3, 3 ), 0, 0 );
@@ -646,7 +646,7 @@ void detection_suivi_mouvement(string video_name, Mat image_arriere_plan,
 				numFrameActuel++;
 
 				imshow(video_name,frame);
-				imshow("Image Arriere Plan", image_arriere_plan);
+				imshow("Image Arriere Plan", background_image);
 				imshow("Detection Mouvement", images_mouvement.back());
 
 				key = cvWaitKey(40);
@@ -670,11 +670,11 @@ int main(int argc, char** argv)
 	int seuil_detection = atoi(argv[3]); // image detection threshold
 	int seuil_correspondance = atoi(argv[4]); // match threshold
 
-	Mat image_arriere_plan;
+	Mat background_image;
 
-	image_arriere_plan = background_extraction(video_name, nb_sequences);
+	background_image = background_extraction(video_name, nb_sequences);
 
-	detection_suivi_mouvement(video_name, image_arriere_plan, seuil_detection,
+	detection_suivi_mouvement(video_name, background_image, seuil_detection,
 			seuil_correspondance);
 
 	waitKey(0);
